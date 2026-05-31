@@ -10,7 +10,7 @@ st.set_page_config(
     layout="wide"
 )
 
-API_URL = "http://localhost:8000"
+API_URL = "https://smart-farming-ai-api.onrender.com"
 
 # Header
 st.title("🌿 Plant Disease Diagnosis System")

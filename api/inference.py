@@ -1,27 +1,59 @@
 import torch
 import json
 import numpy as np
+import os
 from PIL import Image
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 from src.model import PlantDiseaseClassifier
+from huggingface_hub import hf_hub_download
 
+# ====================================================
+# Download model from HuggingFace if not exists
+# ====================================================
+MODEL_PATH = "models/best_model.pth"
+CLASS_PATH = "models/class_names.json"
+
+HF_REPO = "ankit2293/plant-disease-efficientnet"
+
+os.makedirs("models", exist_ok=True)
+
+if not os.path.exists(MODEL_PATH):
+    print("📥 Downloading model from HuggingFace...")
+    hf_hub_download(
+        repo_id=HF_REPO,
+        filename="best_model.pth",
+        local_dir="models"
+    )
+    print("✅ Model downloaded!")
+
+if not os.path.exists(CLASS_PATH):
+    print("📥 Downloading class names...")
+    hf_hub_download(
+        repo_id=HF_REPO,
+        filename="class_names.json",
+        local_dir="models"
+    )
+
+# ====================================================
 # Load class names
-with open('models/class_names.json', 'r') as f:
+# ====================================================
+with open(CLASS_PATH, 'r') as f:
     CLASS_NAMES = json.load(f)
 
-# Device
-device = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
-
+# ====================================================
 # Load model
+# ====================================================
+device = torch.device('cpu')
 model = PlantDiseaseClassifier(num_classes=38, pretrained=False).to(device)
-checkpoint = torch.load('models/best_model.pth', map_location=device)
+checkpoint = torch.load(MODEL_PATH, map_location=device)
 model.load_state_dict(checkpoint['model_state_dict'])
 model.eval()
-
 print(f"✅ Model loaded | Val Acc: {checkpoint['val_acc']:.2f}%")
 
+# ====================================================
 # Transforms
+# ====================================================
 inference_transforms = A.Compose([
     A.Resize(300, 300),
     A.CenterCrop(260, 260),
