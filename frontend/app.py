@@ -10,7 +10,7 @@ st.set_page_config(
     layout="wide"
 )
 
-API_URL = "https://smart-farming-ai-ajge.onrender.com"
+API_URL = "https://ankit2293-smart-farming-api.hf.space"
 
 # Header
 st.title("🌿 Plant Disease Diagnosis System")
