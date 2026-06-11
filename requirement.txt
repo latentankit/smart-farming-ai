@@ -3,3 +3,4 @@ streamlit
 pillow
 deep-translator
 python-dotenv
+fpdf2
