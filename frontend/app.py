@@ -634,8 +634,8 @@ with tab6:
             f"+{((best_yield/predicted_yield)-1)*100:.0f}% from current"
         )
 
-# ==================== TAB 6 — CHATBOT ====================
-with tab6:
+# ==================== TAB 7 — CHATBOT ====================
+with tab7:
     st.subheader("💬 Ask the Farming Assistant")
     st.markdown("Ask anything about plant diseases, treatments, or farming practices.")
 
