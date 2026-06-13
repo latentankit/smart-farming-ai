@@ -82,6 +82,10 @@ with tab1:
 
                         # PDF Report
                         # PDF Download — no external packages needed
+                except requests.exceptions.Timeout:
+                    st.error("❌ Timed out. Try again in 30 seconds.")
+                except Exception as e:
+                    st.error(f"❌ Error: {str(e)}")
 st.subheader("📄 Download Report")
 try:
     import datetime
