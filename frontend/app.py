@@ -29,9 +29,10 @@ LANGUAGES = {
 # ============================================================
 st.markdown("""
 <style>
-    .block-container { padding-top: 1rem; max-width: 1200px; }
-    #MainMenu, footer {visibility: hidden;}
+    .block-container { padding-top: 1rem; padding-bottom: 2rem; max-width: 1200px; }
+    #MainMenu {visibility: hidden;}
 
+    /* ---------- HERO ---------- */
     .hero {
         position: relative;
         background: linear-gradient(rgba(20,60,25,.62), rgba(20,60,25,.72)),
@@ -48,6 +49,7 @@ st.markdown("""
         border:1px solid rgba(255,255,255,.35); color:#fff; padding:8px 16px;
         border-radius:30px; font-weight:600; font-size:.9rem; }
 
+    /* ---------- Feature cards ---------- */
     .feat-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:26px; }
     @media (max-width:900px){ .feat-grid{ grid-template-columns:repeat(2,1fr);} }
     .feat { border-radius:16px; overflow:hidden; background:#fff; border:1px solid #ececec;
@@ -58,28 +60,44 @@ st.markdown("""
     .feat .body h4 { margin:0 0 4px; color:#1b5e20; font-size:1.05rem; }
     .feat .body p { margin:0; color:#667; font-size:.85rem; }
 
+    /* ---------- Tabs ---------- */
     .stTabs [data-baseweb="tab-list"]{ gap:6px; flex-wrap:wrap; }
     .stTabs [data-baseweb="tab"]{ background:#f0f8f0; border-radius:10px 10px 0 0;
         padding:10px 18px; font-weight:600; color:#2e7d32; }
     .stTabs [aria-selected="true"]{ background:#2e7d32 !important; color:#fff !important; }
 
+    /* ---------- Metric cards ---------- */
     div[data-testid="stMetric"]{ background:#f7fbf7; border:1px solid #e0efe0; border-radius:14px;
         padding:14px 18px; box-shadow:0 2px 6px rgba(0,0,0,.04); }
     div[data-testid="stMetricValue"]{ color:#1b5e20; font-weight:700; }
 
     .stButton button{ border-radius:10px; font-weight:700; }
 
+    /* ---------- Banners ---------- */
     .banner{ padding:16px 20px; border-radius:14px; margin:6px 0 16px; font-weight:600; }
     .b-green{ background:#e8f5e9; border-left:6px solid #2e7d32; color:#1b5e20; }
     .b-yellow{ background:#fff8e1; border-left:6px solid #f9a825; color:#7a5b00; }
     .b-red{ background:#ffebee; border-left:6px solid #c62828; color:#8e0000; }
 
-    .footer{ text-align:center; color:#9aa; font-size:.85rem; margin-top:34px; }
+    /* ---------- Footer ---------- */
+    .site-footer {
+        margin-top: 40px; background: linear-gradient(135deg,#1b5e20,#2e7d32);
+        color:#e8f5e9; border-radius:18px; padding:30px 36px 18px;
+        box-shadow:0 10px 30px rgba(27,94,32,.25);
+    }
+    .ft-cols { display:grid; grid-template-columns:2fr 1fr 1fr; gap:24px;
+        padding-bottom:18px; border-bottom:1px solid rgba(255,255,255,.18); }
+    @media (max-width:800px){ .ft-cols{ grid-template-columns:1fr; gap:14px; } }
+    .ft-cols h4 { color:#fff; margin:0 0 6px; font-size:1.05rem; }
+    .ft-cols p  { margin:0; color:#cfe9d2; font-size:.9rem; line-height:1.6; }
+    .ft-cols a  { color:#a5d6a7; text-decoration:none; font-weight:600; }
+    .ft-cols a:hover { color:#fff; text-decoration:underline; }
+    .ft-bottom { text-align:center; padding-top:14px; color:#cfe9d2; font-size:.82rem; }
 </style>
 
 <div class="hero">
     <h1>🌿 Smart Farming AI</h1>
-    <p>Detect plant diseases instantly, get treatment plans, track weather &amp; rainfall,
+    <p>Detect plant diseases instantly, get treatment plans, track weather & rainfall,
        plan irrigation, and boost yield — all powered by deep learning.</p>
     <span class="pill">⚡ 99.68% accuracy • 38 disease classes • 14 crops</span>
 </div>
@@ -91,7 +109,7 @@ st.markdown("""
     </div>
     <div class="feat">
         <img src="https://images.unsplash.com/photo-1592210454359-9043f067919b?auto=format&fit=crop&w=500&q=80">
-        <div class="body"><h4>🌤️ Weather &amp; Rain</h4><p>Live conditions + 24h rainfall forecast.</p></div>
+        <div class="body"><h4>🌤️ Weather & Rain</h4><p>Live conditions + 24h rainfall forecast.</p></div>
     </div>
     <div class="feat">
         <img src="https://images.unsplash.com/photo-1574943320219-553eb213f72d?auto=format&fit=crop&w=500&q=80">
@@ -99,7 +117,7 @@ st.markdown("""
     </div>
     <div class="feat">
         <img src="https://images.unsplash.com/photo-1625246333195-78d9c38ad449?auto=format&fit=crop&w=500&q=80">
-        <div class="body"><h4>📈 Yield Boost</h4><p>Predict output &amp; get improvement tips.</p></div>
+        <div class="body"><h4>📈 Yield Boost</h4><p>Predict output & get improvement tips.</p></div>
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -281,9 +299,11 @@ with tab3:
             i_.metric("🌇 Sunset", w["sunset"])
             if w["forecast"]:
                 st.markdown("##### 🌧️ Next 24h Rainfall Forecast")
-                cols = st.columns(len(w["forecast"]))
-                for col, s in zip(cols, w["forecast"]):
-                    col.metric(s["time"], f"{s['rain']} mm", f"{s['pop']}% rain")
+                fcast = w["forecast"]
+                for r in range(0, len(fcast), 4):          # 4 cards per row → proper spacing
+                    row = st.columns(4)
+                    for col, s in zip(row, fcast[r:r + 4]):
+                        col.metric(s["time"], f"{s['rain']} mm", f"{s['pop']}% rain")
             st.markdown("##### ⚠️ Disease Risk Today")
             for dis, rk in w["risks"].items():
                 st.markdown(f"**{dis}:** {rk}")
@@ -428,4 +448,26 @@ with tab7:
 # ============================================================
 #  FOOTER
 # ============================================================
-st.markdown('<div class="footer">🌿 Smart Farming AI • EfficientNet-B3 (99.68%) • Built by Ankit Kumar</div>', unsafe_allow_html=True)
+st.markdown(f"""
+<div class="site-footer">
+    <div class="ft-cols">
+        <div>
+            <h4>🌿 Smart Farming AI</h4>
+            <p>An AI-powered assistant for plant disease detection, treatment, weather,
+               irrigation, fertilizer and yield planning — built to help farmers make
+               faster, smarter decisions.</p>
+        </div>
+        <div>
+            <h4>Features</h4>
+            <p>🔬 Disease Detection<br>🌤️ Weather & Rainfall<br>💧 Irrigation<br>📈 Yield Prediction</p>
+        </div>
+        <div>
+            <h4>Links</h4>
+            <p><a href="{GITHUB_URL}" target="_blank">GitHub Repo</a><br>
+               <a href="https://huggingface.co/ankit2293/plant-disease-efficientnet" target="_blank">Model Card</a><br>
+               EfficientNet-B3 • 99.68%</p>
+        </div>
+    </div>
+    <div class="ft-bottom">© 2026 Smart Farming AI • Built by Ankit Kumar</div>
+</div>
+""", unsafe_allow_html=True)
