@@ -323,6 +323,7 @@ with tab3:
         else:
             st.info("Enter a city and click Get Weather.")
 
+
 # ==================== TAB 4 — IRRIGATION ====================
 with tab4:
     st.subheader("💧 Smart Irrigation Advisor")
