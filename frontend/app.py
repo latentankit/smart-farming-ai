@@ -205,46 +205,88 @@ with tab2:
         st.info("Upload a leaf image to generate heatmap.")
 
 # ==================== TAB 3 — WEATHER ====================
+# ==================== TAB 3 — WEATHER (ENHANCED) ====================
 with tab3:
-    st.subheader("🌤️ Weather & Disease Risk")
-    st.markdown("Get real-time weather and disease risk for your location.")
+    import datetime
+
+    st.subheader("🌤️ Weather, Rainfall & Disease Risk")
+    st.markdown("Live conditions + 24-hour rainfall forecast for your location.")
+
+    def fmt_local_time(unix_ts, tz_offset):
+        return datetime.datetime.utcfromtimestamp(unix_ts + tz_offset).strftime("%a %d %b, %I:%M %p")
+
+    def fmt_clock(unix_ts, tz_offset):
+        return datetime.datetime.utcfromtimestamp(unix_ts + tz_offset).strftime("%I:%M %p")
 
     col1, col2 = st.columns([1, 2])
     with col1:
         city = st.text_input("Enter your city", placeholder="e.g. Mumbai, Delhi, Katra")
         if st.button("🌍 Get Weather", type="primary"):
             if city:
-                with st.spinner("Fetching weather..."):
+                with st.spinner("Fetching live weather..."):
                     try:
-                        weather_key = os.getenv("OPENWEATHER_API_KEY", "")
-                        if not weather_key:
-                            st.error("❌ Weather API key not configured in secrets.")
+                        key = os.getenv("OPENWEATHER_API_KEY", "")
+
+                        # --- 1. Current weather ---
+                        cur_url = (
+                            f"http://api.openweathermap.org/data/2.5/weather"
+                            f"?q={city}&appid={key}&units=metric"
+                        )
+                        d = requests.get(cur_url, timeout=10).json()
+
+                        if d.get("cod") != 200:
+                            st.error(f"✗ City not found: {city}")
                         else:
-                            url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={weather_key}&units=metric"
-                            r   = requests.get(url, timeout=10)
-                            d   = r.json()
-                            if d.get("cod") != 200:
-                                st.error(f"❌ City not found: {city}")
-                            else:
-                                temp     = d["main"]["temp"]
-                                humidity = d["main"]["humidity"]
-                                risks = {
-                                    "Late Blight"     : "🔴 High" if humidity > 80 and 10 < temp < 24 else "🟡 Medium" if humidity > 70 and 10 < temp < 24 else "🟢 Low",
-                                    "Powdery Mildew"  : "🔴 High" if 20 < temp < 30 and humidity < 60 else "🟡 Medium" if 15 < temp < 30 and humidity < 70 else "🟢 Low",
-                                    "Rust"            : "🔴 High" if humidity > 75 and 15 < temp < 25 else "🟡 Medium" if humidity > 65 and 15 < temp < 25 else "🟢 Low",
-                                    "Bacterial Blight": "🔴 High" if humidity > 80 and temp > 28 else "🟡 Medium" if humidity > 70 and temp > 25 else "🟢 Low",
-                                }
-                                st.session_state["weather"] = {
-                                    "city"        : d["name"],
-                                    "temperature" : temp,
-                                    "humidity"    : humidity,
-                                    "description" : d["weather"][0]["description"],
-                                    "wind_speed"  : d["wind"]["speed"],
-                                    "feels_like"  : d["main"]["feels_like"],
-                                    "disease_risk": risks
-                                }
+                            tz       = d.get("timezone", 0)
+                            temp     = d["main"]["temp"]
+                            humidity = d["main"]["humidity"]
+                            rain_1h  = d.get("rain", {}).get("1h", 0.0)
+
+                            # disease risk
+                            risks = {}
+                            risks["Late Blight"]      = "● High" if humidity > 80 and 10 < temp < 24 else "🟡 Medium" if humidity > 70 and 10 < temp < 24 else "○ Low"
+                            risks["Powdery Mildew"]   = "● High" if 20 < temp < 30 and humidity < 60 else "🟡 Medium" if 15 < temp < 30 and humidity < 70 else "○ Low"
+                            risks["Rust"]             = "● High" if humidity > 75 and 15 < temp < 25 else "🟡 Medium" if humidity > 65 and 15 < temp < 25 else "○ Low"
+                            risks["Bacterial Blight"] = "● High" if humidity > 80 and temp > 28 else "🟡 Medium" if humidity > 70 and temp > 25 else "○ Low"
+
+                            # --- 2. 24h rainfall forecast (3-hourly) ---
+                            fc_url = (
+                                f"http://api.openweathermap.org/data/2.5/forecast"
+                                f"?q={city}&appid={key}&units=metric"
+                            )
+                            fc = requests.get(fc_url, timeout=10).json()
+                            forecast = []
+                            if str(fc.get("cod")) == "200":
+                                for slot in fc["list"][:8]:  # 8 x 3h = 24h
+                                    forecast.append({
+                                        "time": fmt_clock(slot["dt"], tz),
+                                        "temp": slot["main"]["temp"],
+                                        "rain": slot.get("rain", {}).get("3h", 0.0),
+                                        "pop":  int(slot.get("pop", 0) * 100),
+                                    })
+
+                            st.session_state["weather"] = {
+                                "city"        : f'{d["name"]}, {d["sys"].get("country","")}',
+                                "temperature" : temp,
+                                "feels_like"  : d["main"]["feels_like"],
+                                "temp_min"    : d["main"]["temp_min"],
+                                "temp_max"    : d["main"]["temp_max"],
+                                "humidity"    : humidity,
+                                "pressure"    : d["main"]["pressure"],
+                                "wind_speed"  : d["wind"]["speed"],
+                                "wind_deg"    : d["wind"].get("deg", 0),
+                                "clouds"      : d.get("clouds", {}).get("all", 0),
+                                "visibility"  : d.get("visibility", 0) / 1000,
+                                "rain_1h"     : rain_1h,
+                                "description" : d["weather"][0]["description"],
+                                "local_time"  : fmt_local_time(d["dt"], tz),
+                                "sunrise"     : fmt_clock(d["sys"]["sunrise"], tz),
+                                "sunset"      : fmt_clock(d["sys"]["sunset"], tz),
+                                "disease_risk": risks,
+                                "forecast"    : forecast,
+                            }
                     except Exception as e:
-                        st.error(f"❌ Error: {str(e)}")
+                        st.error(f"✗ Error: {str(e)}")
             else:
                 st.warning("Please enter a city name")
 
@@ -252,19 +294,35 @@ with tab3:
         if "weather" in st.session_state:
             w = st.session_state["weather"]
             st.subheader(f"📍 {w['city']}")
-            m1, m2, m3 = st.columns(3)
-            with m1:
-                st.metric("🌡️ Temperature", f"{w['temperature']}°C", f"Feels {w['feels_like']}°C")
-            with m2:
-                st.metric("💧 Humidity", f"{w['humidity']}%")
-            with m3:
-                st.metric("💨 Wind", f"{w['wind_speed']} m/s")
-            st.markdown(f"**Conditions:** {w['description'].capitalize()}")
+            st.caption(f"🕒 Local time: {w['local_time']}  •  {w['description'].capitalize()}")
+
+            a, b, c = st.columns(3)
+            a.metric("🌡️ Temperature", f"{w['temperature']}°C", f"Feels {w['feels_like']}°C")
+            b.metric("💧 Humidity", f"{w['humidity']}%")
+            c.metric("🌧️ Rain (last 1h)", f"{w['rain_1h']} mm")
+
+            d_, e_, f_ = st.columns(3)
+            d_.metric("💨 Wind", f"{w['wind_speed']} m/s", f"{w['wind_deg']}°")
+            e_.metric("◦ Pressure", f"{w['pressure']} hPa")
+            f_.metric("☁️ Cloud Cover", f"{w['clouds']}%")
+
+            g_, h_, i_ = st.columns(3)
+            g_.metric("👁️ Visibility", f"{w['visibility']:.1f} km")
+            h_.metric("🌅 Sunrise", w['sunrise'])
+            i_.metric("🌇 Sunset", w['sunset'])
+
+            if w["forecast"]:
+                st.subheader("🌧️ Next 24h Rainfall Forecast")
+                fc_cols = st.columns(len(w["forecast"]))
+                for col, slot in zip(fc_cols, w["forecast"]):
+                    col.metric(slot["time"], f"{slot['rain']} mm", f"{slot['pop']}% rain")
+
             st.subheader("⚠️ Disease Risk Today")
             for disease, risk in w["disease_risk"].items():
                 st.markdown(f"**{disease}:** {risk}")
         else:
             st.info("Enter a city and click Get Weather.")
+
 
 # ==================== TAB 4 — IRRIGATION ====================
 with tab4:
